@@ -14,3 +14,4 @@ C ^ a ^ b->S
 a ^ b ^ c ^ p->S
 S ^ b->hb
 S ^ p->r
+a ^ b->p

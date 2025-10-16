@@ -1,4 +1,3 @@
-# AppSuyDien.py
 import streamlit as st
 from typing import List, Tuple, Set
 from pyvis.network import Network
@@ -34,6 +33,41 @@ def rule_to_str(r: Rule) -> str:
     return f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}"
 
 # ------------------ SUY DIỄN ------------------
+def suy_dien_tien_bt(TG: Set[str], R: List[Rule], KL: Set[str], order="min", depth=0, max_depth=2000):
+    if KL.issubset(TG):
+        return True, TG, []
+
+    if depth > max_depth:
+        return False, TG, []
+
+    indices = range(len(R)) if order == "min" else range(len(R) - 1, -1, -1)
+    for i in indices:
+        left, right = R[i]
+        if left.issubset(TG) and not right.issubset(TG):
+            new_TG = set(TG) | set(right)
+            ok, final_TG, used = suy_dien_tien_bt(new_TG, R, KL, order, depth + 1, max_depth)
+            if ok:
+                return True, final_TG, [(left, right)] + used
+    return False, TG, []
+
+def suy_dien_lui_bt(TG: Set[str], R: List[Rule], KL: Set[str], order="min", depth=0, max_depth=2000):
+    if KL.issubset(TG):
+        return True, TG, []
+    if depth > max_depth:
+        return False, KL, []
+
+    goals = set(KL)
+    indices = range(len(R)) if order == "min" else range(len(R) - 1, -1, -1)
+    for i in indices:
+        left, right = R[i]
+        if right & goals:
+            new_goals = (goals - (right & goals)) | left
+            ok, _, used = suy_dien_lui_bt(TG, R, new_goals, order, depth + 1, max_depth)
+            if ok:
+                return True, set(), [(left, right)] + used
+    return False, goals, []
+
+
 def loc(TG: Set[str], R: List[Rule]) -> List[Rule]:
     return [r for r in R if r[0].issubset(TG) and not r[1].issubset(TG)]
 
@@ -173,18 +207,18 @@ def ve_FPG_interactive_edges(TG0, KL, R_all, output_html="fpg.html"):
         events |= right
 
     for e in events:
+        color = "lightgreen"
         if e in TG0:
-            net.add_node(e, label=e, color="lightblue")
+            color = "lightblue"
         elif e in KL:
-            net.add_node(e, label=e, color="lightgray")
-        else:
-            net.add_node(e, label=e, color="lightgreen")
+            color = "lightgray"
+        net.add_node(e, label=e, title=e, shape="circle", color=color)
 
     for idx, (left, right) in enumerate(R_all, start=1):
-        label = f"r{idx}"
+        #label = f"r{idx}"
         for l in left:
             for r in right:
-                net.add_edge(l, r, arrows="to", label=label)
+                net.add_edge(l, r, arrows="to")
     net.write_html(output_html)
     return output_html
 
@@ -226,6 +260,7 @@ if uploaded:
         [{"Vế trái": " ^ ".join(sorted(l)), "Vế phải": " ^ ".join(sorted(r))} for l, r in R]
     )
 
+# --- Hiển thị bảng luật ---
 st.subheader("Bảng luật (có thể chỉnh sửa)")
 rules_df = st.data_editor(
     st.session_state["rules_df"],
@@ -234,8 +269,11 @@ rules_df = st.data_editor(
     key="editable_rules"
 )
 
-# Cập nhật lại luật khi chỉnh sửa
-st.session_state["rules_df"] = rules_df
+# --- Nút cập nhật bảng luật ---
+if st.button("Cập nhật bảng luật"):
+    st.session_state["rules_df"] = rules_df
+    st.success("Đã cập nhật bảng luật vào bộ nhớ.")
+
 
 # Tạo danh sách R mới
 R = []
@@ -260,21 +298,24 @@ if TG_input and KL_input:
     c1, c2, c3 = st.columns(3)
 
     with c1:
+        st.markdown("### Suy diễn tiến")
+        order_tien = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_tien", horizontal=True)
         if st.button("Chạy suy diễn tiến"):
-            ok, TG_kq, VET, TG0 = suy_dien_tien(set(TG), list(R), set(KL))
+            ok, TG_kq, VET = suy_dien_tien_bt(set(TG), list(R), set(KL), order=order_tien)
             st.write("**Thành công:**", ok)
             st.write("**Tập sự kiện cuối cùng:**", TG_kq)
-            used = prune_vet(VET, TG0, KL)
-            st.write("**Các luật thực sự dùng:**")
-            for left, right in used:
+            st.write("**Các luật đã dùng:**")
+            for left, right in VET:
                 st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
 
     with c2:
+        st.markdown("### Suy diễn lùi")
+        order_lui = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_lui", horizontal=True)
         if st.button("Chạy suy diễn lùi"):
-            ok, goals, VEL = suy_dien_lui(set(TG), list(R), set(KL))
+            ok, goals, VEL = suy_dien_lui_bt(set(TG), list(R), set(KL), order=order_lui)
             st.write("**Thành công:**", ok)
             st.write("**Mục tiêu còn lại:**", goals)
-            st.write("**Các luật dùng:**")
+            st.write("**Các luật đã dùng:**")
             for left, right in VEL:
                 st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
 
