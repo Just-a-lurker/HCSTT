@@ -240,10 +240,15 @@ st.session_state["rules_df"] = rules_df
 # Tạo danh sách R mới
 R = []
 for _, row in rules_df.iterrows():
-    left = set(row["Vế trái"].replace("^", " ").split())
-    right = set(row["Vế phải"].replace("^", " ").split())
+    left_str = str(row.get("Vế trái") or "").strip()
+    right_str = str(row.get("Vế phải") or "").strip()
+    if not left_str or not right_str:
+        continue
+    left = set(left_str.replace("^", " ").split())
+    right = set(right_str.replace("^", " ").split())
     if left and right:
         R.append((left, right))
+
 
 TG_input = st.text_input("Nhập giả thuyết ban đầu (GT):", "")
 KL_input = st.text_input("Nhập kết luận cần chứng minh (KL):", "")
