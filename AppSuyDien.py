@@ -71,18 +71,51 @@ def suy_dien_lui_bt(TG: Set[str], R: List[Rule], KL: Set[str], order="min", dept
 def loc(TG: Set[str], R: List[Rule]) -> List[Rule]:
     return [r for r in R if r[0].issubset(TG) and not r[1].issubset(TG)]
 
-def suy_dien_tien(TG: Set[str], R: List[Rule], KL: Set[str]):
+def suy_dien_tien_thoa(TG: Set[str], R: List[Rule], KL: Set[str], use_stack: bool):
+    """
+    Suy diễn tiến cổ điển, cho phép chọn THOA là stack (LIFO) hoặc queue (FIFO).
+    Trả về (ok, TG_kq, VET, TG0, steps) trong đó steps là danh sách từng bước.
+    """
     TG0 = set(TG)
     VET = []
+    steps = []
+
     THOA = loc(TG, R)
+    step_id = 0
+
     while THOA and not KL.issubset(TG):
-        r = THOA.pop(0)
+        step_id += 1
+        # lưu lại trạng thái trước khi lấy luật
+        steps.append({
+            "Bước": step_id,
+            "THOA": [rule_to_str(r) for r in THOA],
+            "TG": sorted(list(TG)),
+            "R": [rule_to_str(r) for r in R],
+            "VET": [rule_to_str(r) for r in VET],
+        })
+
+        # lấy luật theo stack/queue
+        r = THOA.pop(-1) if use_stack else THOA.pop(0)
         left, right = r
         VET.append(r)
         TG |= right
         R.remove(r)
+
+        # cập nhật tập luật thỏa mãn mới
         THOA = loc(TG, R)
-    return KL.issubset(TG), TG, VET, TG0
+
+    # lưu bước cuối
+    step_id += 1
+    steps.append({
+        "Bước": step_id,
+        "THOA": [rule_to_str(r) for r in THOA],
+        "TG": sorted(list(TG)),
+        "R": [rule_to_str(r) for r in R],
+        "VET": [rule_to_str(r) for r in VET],
+    })
+
+    return KL.issubset(TG), TG, VET, TG0, steps
+
 
 def prune_vet(VET: List[Rule], TG0: Set[str], KL: Set[str]) -> List[Rule]:
     needed = set(KL)
@@ -299,14 +332,50 @@ if TG_input and KL_input:
 
     with c1:
         st.markdown("### Suy diễn tiến")
-        order_tien = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_tien", horizontal=True)
+
+        mode_tien = st.radio(
+            "Chọn chế độ suy diễn tiến",
+            ["Theo Min/Max (Backtracking)", "Theo THOA (Stack/Queue)"],
+            key="mode_tien",
+            horizontal=False
+        )
+
+        if mode_tien == "Theo Min/Max (Backtracking)":
+            order_tien = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_tien", horizontal=True)
+        else:
+            thoa_mode = st.radio("Kiểu THOA", ["Stack (LIFO)", "Queue (FIFO)"], key="thoa_mode", horizontal=True)
+
         if st.button("Chạy suy diễn tiến"):
-            ok, TG_kq, VET = suy_dien_tien_bt(set(TG), list(R), set(KL), order=order_tien)
-            st.write("**Thành công:**", ok)
-            st.write("**Tập sự kiện cuối cùng:**", TG_kq)
-            st.write("**Các luật đã dùng:**")
-            for left, right in VET:
-                st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+            if mode_tien == "Theo Min/Max (Backtracking)":
+                ok, TG_kq, VET = suy_dien_tien_bt(set(TG), list(R), set(KL), order=order_tien)
+                st.write("**Thành công:**", ok)
+                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+                st.write("**Các luật đã dùng:**")
+                for left, right in VET:
+                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+            else:
+                use_stack = (thoa_mode == "Stack (LIFO)")
+                ok, TG_kq, VET, TG0, steps = suy_dien_tien_thoa(set(TG), list(R), set(KL), use_stack=use_stack)
+
+                st.write("**Thành công:**", ok)
+                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+                st.write("**Các luật đã dùng:**")
+                for left, right in VET:
+                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+
+                # --- Hiển thị bảng quá trình ---
+                st.markdown("### Bảng quá trình suy diễn")
+                df_steps = pd.DataFrame([
+                    {
+                        "Bước": s["Bước"],
+                        "THOA": ", ".join(s["THOA"]),
+                        "TG": ", ".join(s["TG"]),
+                        "R": ", ".join(s["R"]),
+                        "VET": ", ".join(s["VET"])
+                    }
+                    for s in steps
+                ])
+                st.dataframe(df_steps, use_container_width=True, height=400)
 
     with c2:
         st.markdown("### Suy diễn lùi")
