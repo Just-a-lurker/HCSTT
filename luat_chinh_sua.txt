@@ -1,0 +1,16 @@
+C ^ a ^ b->c
+a ^ b ^ ma->c
+a ^ b ^ mb->c
+A ^ B->C
+a ^ hc->B
+b ^ hc->A
+R ^ a->A
+R ^ a->B
+a ^ b ^ c->P
+a ^ b ^ c->p
+a ^ b ^ c->mc
+a ^ ha->S
+C ^ a ^ b->S
+a ^ b ^ c ^ p->S
+S ^ b->hb
+S ^ p->r

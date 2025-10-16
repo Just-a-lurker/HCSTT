@@ -1,0 +1,9 @@
+TG: A
+KL: E
+R:
+A -> B
+A -> C
+A ^ B ^ C -> D
+D ^ B -> E
+B -> F
+C -> G
