@@ -6,6 +6,8 @@ import os
 import pandas as pd
 from collections import deque
 from typing import List, Tuple, Set
+import networkx as nx
+INF = 10**9
 
 Rule = Tuple[Set[str], Set[str]]
 
@@ -73,36 +75,53 @@ def loc(TG: Set[str], R: List[Rule]) -> List[Rule]:
 
 def suy_dien_tien_thoa(TG: Set[str], R: List[Rule], KL: Set[str], use_stack: bool):
     """
-    Suy diễn tiến cổ điển, cho phép chọn THOA là stack (LIFO) hoặc queue (FIFO).
-    Trả về (ok, TG_kq, VET, TG0, steps) trong đó steps là danh sách từng bước.
+    THOA preserved as queue (FIFO) or stack (LIFO).
+    Returns (ok, TG_kq, VET, TG0, steps)
     """
     TG0 = set(TG)
     VET = []
     steps = []
 
-    THOA = loc(TG, R)
-    step_id = 0
+    # R_remain giữ thứ tự gốc
+    R_remain = list(R)
 
+    # khởi tạo THOA theo thứ tự R_remain
+    THOA = [r for r in R_remain if r[0].issubset(TG) and not r[1].issubset(TG)]
+
+    step_id = 0
     while THOA and not KL.issubset(TG):
         step_id += 1
-        # lưu lại trạng thái trước khi lấy luật
         steps.append({
             "Bước": step_id,
             "THOA": [rule_to_str(r) for r in THOA],
             "TG": sorted(list(TG)),
-            "R": [rule_to_str(r) for r in R],
+            "R": [rule_to_str(r) for r in R_remain],
             "VET": [rule_to_str(r) for r in VET],
         })
 
-        # lấy luật theo stack/queue
+        # lấy luật theo stack/queue (không tính lại toàn bộ THOA)
         r = THOA.pop(-1) if use_stack else THOA.pop(0)
+
+        # áp dụng
         left, right = r
         VET.append(r)
         TG |= right
-        R.remove(r)
 
-        # cập nhật tập luật thỏa mãn mới
-        THOA = loc(TG, R)
+        # xoá luật đã áp dụng khỏi R_remain (giữ nguyên thứ tự còn lại)
+        try:
+            R_remain.remove(r)
+        except ValueError:
+            pass
+
+        # tìm các luật **mới** trở nên thỏa mãn, theo thứ tự R_remain
+        newly_enabled = []
+        for cand in R_remain:
+            if cand not in THOA and cand not in VET:
+                if cand[0].issubset(TG) and not cand[1].issubset(TG):
+                    newly_enabled.append(cand)
+
+        # append mới vào cuối THOA (đảm bảo FIFO behavior)
+        THOA.extend(newly_enabled)
 
     # lưu bước cuối
     step_id += 1
@@ -110,21 +129,224 @@ def suy_dien_tien_thoa(TG: Set[str], R: List[Rule], KL: Set[str], use_stack: boo
         "Bước": step_id,
         "THOA": [rule_to_str(r) for r in THOA],
         "TG": sorted(list(TG)),
-        "R": [rule_to_str(r) for r in R],
+        "R": [rule_to_str(r) for r in R_remain],
         "VET": [rule_to_str(r) for r in VET],
     })
 
     return KL.issubset(TG), TG, VET, TG0, steps
 
+def suy_dien_tien_FPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
+    """
+    Forward chaining guided by h via FPG.
+    Trả về ok, TG_kq, VET, steps
+    steps: list of dict with keys: Bước, THOA(list names), TG, R(list names), VET(list names), Candidates(str)
+    """
+    TG0 = set(TG)
+    R_remain = list(R_all)[:]  # giữ bản gốc
+    G = build_adj(R_all)       # đồ thị FPG cố định (dùng để tính KC)
+    VET = []
+    steps = []
 
-def prune_vet(VET: List[Rule], TG0: Set[str], KL: Set[str]) -> List[Rule]:
-    needed = set(KL)
-    used = []
-    for left, right in reversed(VET):
-        if right & needed:
-            used.insert(0, (left, right))
-            needed |= left
-    return used
+    # khởi tạo THOA (theo thứ tự R_remain)
+    THOA = [r for r in R_remain if r[0].issubset(TG) and not r[1].issubset(TG)]
+
+    # bước 0: trạng thái ban đầu
+    steps.append({
+        "Bước": 0,
+        "THOA": [rule_to_str(r) for r in THOA],
+        "TG": ", ".join(sorted(TG)),
+        "R": [rule_to_str(r) for r in R_remain],
+        "VET": ", ".join([]),
+        "Candidates": ""
+    })
+
+    step_id = 0
+    while THOA and not KL.issubset(TG):
+        step_id += 1
+
+        # tính h cho mỗi luật trong THOA
+        cand_info = []
+        scored = []
+        for r in THOA:
+            left, right = r
+            # KC(q,KL) = dist from q to any KL; if multiple q in right, take min
+            h_vals = []
+            for qnode in right:
+                d = dist_to_set(G, qnode, set(KL))
+                h_vals.append(d if d != float("inf") else INF)
+            h_r = min(h_vals) if h_vals else INF
+            idx = R_remain.index(r) if r in R_remain else -1
+            name = rule_name(idx+1, r) if idx>=0 else rule_to_str(r)
+            cand_info.append(f"{name}={h_r if h_r<INF else '∞'}")
+            scored.append((h_r, idx, r))
+
+        # sắp theo h tăng dần, tie-break: theo thứ tự trong R_remain (idx)
+        scored.sort(key=lambda x: (x[0], x[1] if x[1]>=0 else 9999))
+        chosen_h, chosen_idx, chosen_rule = scored[0]
+
+        # đánh dấu lựa chọn trong chuỗi candidate
+        cand_str = ", ".join(cand_info)
+        chosen_name = rule_name(chosen_idx+1, chosen_rule) if chosen_idx>=0 else rule_to_str(chosen_rule)
+        cand_str = cand_str + f"    => Chọn: {chosen_name} (h={chosen_h if chosen_h<INF else '∞'})"
+
+        # lưu trạng thái trước khi áp dụng
+        steps.append({
+            "Bước": step_id,
+            "THOA": [rule_to_str(r) for r in THOA],
+            "TG": ", ".join(sorted(TG)),
+            "R": [rule_to_str(r) for r in R_remain],
+            "VET": ", ".join([rule_to_str(x) for x in VET]),
+            "Candidates": cand_str
+        })
+
+        # nếu không thể tiếp cận tiền đề từ KL (h=inf cho mọi candidate) thì dừng
+        if chosen_h >= INF:
+            break
+
+        # áp dụng luật được chọn
+        left, right = chosen_rule
+        VET.append(chosen_rule)
+
+        # update TG
+        TG |= right
+
+        # remove chosen_rule from R_remain and THOA
+        if chosen_rule in R_remain:
+            R_remain.remove(chosen_rule)
+        if chosen_rule in THOA:
+            try:
+                THOA.remove(chosen_rule)
+            except ValueError:
+                pass
+
+        # tìm các luật mới trở nên thỏa mãn theo thứ tự R_remain
+        newly_enabled = []
+        for cand in R_remain:
+            if cand not in THOA and cand not in VET:
+                if cand[0].issubset(TG) and not cand[1].issubset(TG):
+                    newly_enabled.append(cand)
+        THOA.extend(newly_enabled)
+
+    # lưu bước cuối
+    step_id += 1
+    steps.append({
+        "Bước": step_id,
+        "THOA": [rule_to_str(r) for r in THOA],
+        "TG": ", ".join(sorted(TG)),
+        "R": [rule_to_str(r) for r in R_remain],
+        "VET": ", ".join([rule_to_str(x) for x in VET]),
+        "Candidates": ""
+    })
+
+    return KL.issubset(TG), TG, VET, steps
+
+def suy_dien_tien_RPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
+    """
+    Forward chaining guided by RPG distances.
+    Trả về: ok, TG_kq, VET, steps
+    steps: list dict: Bước, THOA(list names), TG, R(list names), VET(list names), Candidates (name=h,... -> chosen)
+    """
+    TG0 = set(TG)
+    R_remain = list(R_all)
+    VET = []
+    steps = []
+
+    # khởi tạo THOA theo thứ tự R_remain
+    THOA = [r for r in R_remain if r[0].issubset(TG) and not r[1].issubset(TG)]
+
+    # xây RPG từ toàn bộ R_all (index-based)
+    RPG = build_RPG(R_all)
+
+    # RKL: chỉ dựa trên KL (các luật dẫn trực tiếp tới KL)
+    RGT, RKL = rgt_rkl_sets(R_all, TG, KL)
+
+    # bước 0
+    steps.append({
+        "Bước": 0,
+        "THOA": [rule_to_str(r) for r in THOA],
+        "TG": ", ".join(sorted(TG)),
+        "R": [rule_to_str(r) for r in R_remain],
+        "VET": "",
+        "Candidates": ""
+    })
+
+    step_id = 0
+    while THOA and not KL.issubset(TG):
+        step_id += 1
+        # tính h_hat cho mỗi luật trong THOA: KC(r, RKL)
+        cand_info = []
+        scored = []
+        for r in THOA:
+            # tìm index của r trong R_remain (ưu tiên index thực trong R_all)
+            try:
+                idx = R_all.index(r)
+            except ValueError:
+                idx = -1
+            # nếu RKL rỗng thì mọi h = inf
+            if not RKL:
+                h_val = float("inf")
+            else:
+                h_val = dist_rule_to_set(RPG, idx, RKL)
+            name = f"r{idx+1}: {rule_to_str(r)}" if idx>=0 else rule_to_str(r)
+            cand_info.append(f"{name}={h_val if h_val!=float('inf') else '∞'}")
+            scored.append((h_val, idx, r))
+
+        # sắp theo h tăng dần, tie-break: theo idx
+        scored.sort(key=lambda x: (x[0], x[1] if x[1]>=0 else 9999))
+        chosen_h, chosen_idx, chosen_rule = scored[0]
+
+        cand_str = ", ".join(cand_info)
+        chosen_name = f"r{chosen_idx+1}: {rule_to_str(chosen_rule)}" if chosen_idx>=0 else rule_to_str(chosen_rule)
+        cand_str = cand_str + f"    => Chọn: {chosen_name} (h={chosen_h if chosen_h!=float('inf') else '∞'})"
+
+        # lưu trạng thái trước khi áp dụng
+        steps.append({
+            "Bước": step_id,
+            "THOA": [rule_to_str(r) for r in THOA],
+            "TG": ", ".join(sorted(TG)),
+            "R": [rule_to_str(r) for r in R_remain],
+            "VET": ", ".join([rule_to_str(x) for x in VET]),
+            "Candidates": cand_str
+        })
+
+        # nếu không thể tiếp cận (h inf) thì dừng
+        if chosen_h == float("inf"):
+            break
+
+        # áp dụng luật
+        left, right = chosen_rule
+        VET.append(chosen_rule)
+        TG |= right
+        # remove chosen_rule from R_remain and THOA
+        if chosen_rule in R_remain:
+            R_remain.remove(chosen_rule)
+        if chosen_rule in THOA:
+            try: THOA.remove(chosen_rule)
+            except ValueError: pass
+
+        # cập nhật RKL: có thể thay đổi nếu KL đạt
+        _, RKL = rgt_rkl_sets(R_all, TG, KL)  # recompute RKL relative to KL (still indices in R_all)
+
+        # add newly enabled rules (theo thứ tự R_remain)
+        newly_enabled = []
+        for cand in R_remain:
+            if cand not in THOA and cand not in VET:
+                if cand[0].issubset(TG) and not cand[1].issubset(TG):
+                    newly_enabled.append(cand)
+        THOA.extend(newly_enabled)
+
+    # lưu bước cuối
+    step_id += 1
+    steps.append({
+        "Bước": step_id,
+        "THOA": [rule_to_str(r) for r in THOA],
+        "TG": ", ".join(sorted(TG)),
+        "R": [rule_to_str(r) for r in R_remain],
+        "VET": ", ".join([rule_to_str(x) for x in VET]),
+        "Candidates": ""
+    })
+
+    return KL.issubset(TG), TG, VET, steps
 
 # Hàm phụ
 def build_adj(R_all: List[Tuple[Set[str], Set[str]]]) -> dict:
@@ -135,6 +357,27 @@ def build_adj(R_all: List[Tuple[Set[str], Set[str]]]) -> dict:
         for r in right:
             G.setdefault(r, set())
     return G
+
+def dist_to_set(G: dict, src: str, targets: Set[str]) -> float:
+    """Khoảng cách ngắn nhất từ src đến bất kỳ node nào trong targets (BFS)."""
+    if src in targets:
+        return 0
+    q = deque([(src, 0)])
+    vis = {src}
+    while q:
+        node, d = q.popleft()
+        for nxt in G.get(node, ()):
+            if nxt in targets:
+                return d + 1
+            if nxt not in vis:
+                vis.add(nxt)
+                q.append((nxt, d + 1))
+    return float("inf")
+
+
+def rule_name(idx, rule):
+    left, right = rule
+    return f"r{idx}: {' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}"
 
 def shortest_distance(G: dict, GT: Set[str], target: str) -> float:
     if target in GT:
@@ -155,6 +398,38 @@ def h_rule(left: Set[str], G: dict, GT: Set[str]) -> float:
     if not left:
         return float("inf")
     return max(shortest_distance(G, GT, f) for f in left)
+
+def build_RPG(R_all: List[Rule]) -> nx.DiGraph:
+    """Xây đồ thị RPG: node = r{i} (index trong R_all), edge ri->rj nếu right(ri) ∩ left(rj) ≠ ∅"""
+    G = nx.DiGraph()
+    n = len(R_all)
+    for i in range(n):
+        G.add_node(i)
+    for i, (left_i, right_i) in enumerate(R_all):
+        for j, (left_j, right_j) in enumerate(R_all):
+            if i == j:
+                continue
+            if right_i & left_j:
+                G.add_edge(i, j)
+    return G
+
+def rgt_rkl_sets(R_all: List[Rule], TG: Set[str], KL: Set[str]):
+    """RGT = luật có left ⊆ TG; RKL = luật có right ∩ KL ≠ ∅"""
+    RGT = {i for i,(l,r) in enumerate(R_all) if l.issubset(TG)}
+    RKL = {i for i,(l,r) in enumerate(R_all) if r & KL}
+    return RGT, RKL
+
+def dist_rule_to_set(RPG: nx.DiGraph, start_idx: int, targets: Set[int]) -> float:
+    """Khoảng cách ngắn nhất (số cung) từ start_idx đến bất kỳ node trong targets trên RPG."""
+    if start_idx in targets:
+        return 0
+    try:
+        # multi-target shortest: compute single-source lengths and take min
+        lengths = nx.single_source_shortest_path_length(RPG, start_idx)
+        ds = [lengths[t] for t in targets if t in lengths]
+        return min(ds) if ds else float("inf")
+    except Exception:
+        return float("inf")
 
 # Backtracking backward chaining
 def suy_dien_lui(TG: Set[str], R_all: List[Tuple[Set[str], Set[str]]], KL: Set[str],
@@ -335,16 +610,23 @@ if TG_input and KL_input:
 
         mode_tien = st.radio(
             "Chọn chế độ suy diễn tiến",
-            ["Theo Min/Max (Backtracking)", "Theo THOA (Stack/Queue)"],
+            [
+                "Theo Min/Max (Backtracking)",
+                "Theo THOA (Stack/Queue)",
+                "Theo FPG",
+                "Theo RPG"
+            ],
             key="mode_tien",
             horizontal=False
         )
 
         if mode_tien == "Theo Min/Max (Backtracking)":
             order_tien = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_tien", horizontal=True)
-        else:
+
+        elif mode_tien == "Theo THOA (Stack/Queue)":
             thoa_mode = st.radio("Kiểu THOA", ["Stack (LIFO)", "Queue (FIFO)"], key="thoa_mode", horizontal=True)
 
+        # Chế độ FPG không có lựa chọn phụ
         if st.button("Chạy suy diễn tiến"):
             if mode_tien == "Theo Min/Max (Backtracking)":
                 ok, TG_kq, VET = suy_dien_tien_bt(set(TG), list(R), set(KL), order=order_tien)
@@ -353,7 +635,8 @@ if TG_input and KL_input:
                 st.write("**Các luật đã dùng:**")
                 for left, right in VET:
                     st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
-            else:
+
+            elif mode_tien == "Theo THOA (Stack/Queue)":
                 use_stack = (thoa_mode == "Stack (LIFO)")
                 ok, TG_kq, VET, TG0, steps = suy_dien_tien_thoa(set(TG), list(R), set(KL), use_stack=use_stack)
 
@@ -363,19 +646,53 @@ if TG_input and KL_input:
                 for left, right in VET:
                     st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
 
-                # --- Hiển thị bảng quá trình ---
+                # --- Bảng quá trình ---
                 st.markdown("### Bảng quá trình suy diễn")
-                df_steps = pd.DataFrame([
-                    {
-                        "Bước": s["Bước"],
-                        "THOA": ", ".join(s["THOA"]),
-                        "TG": ", ".join(s["TG"]),
-                        "R": ", ".join(s["R"]),
-                        "VET": ", ".join(s["VET"])
-                    }
-                    for s in steps
-                ])
-                st.dataframe(df_steps, use_container_width=True, height=400)
+                # df_steps = pd.DataFrame([
+                #     {
+                #         "Bước": s["Bước"],
+                #         "THOA": ", ".join(s["THOA"]),
+                #         "TG": ", ".join(s["TG"]),
+                #         "R": ", ".join(s["R"]),
+                #         "VET": ", ".join(s["VET"])
+                #     }
+                #     for s in steps
+                # ])
+                # st.dataframe(df_steps, use_container_width=True, height=400)
+                df_steps = pd.DataFrame(steps)
+                st.dataframe(df_steps)
+
+            elif mode_tien == "Theo FPG":
+                ok, TG_kq, VET, steps = suy_dien_tien_FPG(set(TG), list(R), set(KL))
+                st.write("**Thành công:**", ok)
+                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+                st.write("**Các luật đã dùng:**")
+                for left, right in VET:
+                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+                # df_steps = pd.DataFrame([{
+                #     "Bước": s["Bước"],
+                #     "THOA": ", ".join(s["THOA"]),
+                #     "TG": s["TG"],
+                #     "R": ", ".join(s["R"]),
+                #     "VET": s["VET"],
+                #     "So sánh h": s["Candidates"]
+                # } for s in steps])
+                # st.dataframe(df_steps, use_container_width=True, height=500)
+                df_steps = pd.DataFrame(steps)
+                st.dataframe(df_steps)
+
+
+            elif mode_tien == "Theo RPG":
+                ok, TG_kq, VET, steps = suy_dien_tien_RPG(set(TG), list(R), set(KL))
+                st.subheader("Kết quả suy diễn tiến RPG")
+                st.write("Kết luận đạt được" if ok else "Không suy diễn được tới KL")
+                st.write("**Thành công:**", ok)
+                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+                st.write("**Các luật đã dùng:**")
+                for left, right in VET:
+                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+                df_steps = pd.DataFrame(steps)
+                st.dataframe(df_steps)
 
     with c2:
         st.markdown("### Suy diễn lùi")
