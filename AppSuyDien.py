@@ -240,6 +240,106 @@ def suy_dien_tien_FPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
 
     return KL.issubset(TG), TG, VET, steps
 
+def suy_dien_lui_FPG(GT: Set[str], R_all: List[Rule], KL: Set[str]):
+    """
+    Backward chaining guided by h via FPG.
+    Trả về ok, TG_kq, VET, steps
+    steps: list of dict với keys:
+      Bước, THOA(list rule names), TG, R(list rule names), VET(list rule names), Candidates(str)
+    """
+    TG = set(GT)
+    R_remain = list(R_all)[:]  # giữ bản gốc
+    G = build_adj(R_all)
+    VET = []
+    steps = []
+
+    # Mục tiêu hiện tại (goal set)
+    Goals = set(KL)
+    step_id = 0
+
+    # khởi tạo các luật có thể sinh ra KL
+    THOA = [r for r in R_remain if not r[1].isdisjoint(Goals)]
+
+    # bước 0
+    steps.append({
+        "Bước": step_id,
+        "THOA": [rule_to_str(r) for r in THOA],
+        "TG": ", ".join(sorted(TG)),
+        "R": [rule_to_str(r) for r in R_remain],
+        "VET": ", ".join([]),
+        "Candidates": ""
+    })
+
+    while THOA and not Goals.issubset(TG):
+        step_id += 1
+
+        # nếu chỉ 1 luật thỏa thì chọn luôn
+        if len(THOA) == 1:
+            chosen_rule = THOA[0]
+            cand_str = rule_to_str(chosen_rule) + " => Chọn trực tiếp (1 luật)"
+        else:
+            # tính hàm lượng giá h(r,GT) = max{ d(f,GT) | f ∈ left }
+            cand_info = []
+            scored = []
+            for r in THOA:
+                left, right = r
+                h_vals = []
+                for f in left:
+                    # dùng shortest_distance: khoảng cách từ GT tới f
+                    d = shortest_distance(G, set(GT), f)
+                    h_vals.append(d if d != float("inf") else INF)
+                h_r = max(h_vals) if h_vals else INF
+                idx = R_remain.index(r) if r in R_remain else -1
+                name = rule_name(idx + 1, r) if idx >= 0 else rule_to_str(r)
+                cand_info.append(f"{name}={h_r if h_r < INF else '∞'}")
+                scored.append((h_r, idx, r))
+
+            scored.sort(key=lambda x: (x[0], x[1] if x[1] >= 0 else 9999))
+            chosen_h, chosen_idx, chosen_rule = scored[0]
+            chosen_name = rule_name(chosen_idx + 1, chosen_rule) if chosen_idx >= 0 else rule_to_str(chosen_rule)
+            cand_str = ", ".join(cand_info)
+            cand_str += f"    => Chọn: {chosen_name} (h={chosen_h if chosen_h < INF else '∞'})"
+
+        # lưu trước khi áp dụng
+        steps.append({
+            "Bước": step_id,
+            "THOA": [rule_to_str(r) for r in THOA],
+            "TG": ", ".join(sorted(TG)),
+            "R": [rule_to_str(r) for r in R_remain],
+            "VET": ", ".join([rule_to_str(x) for x in VET]),
+            "Candidates": cand_str
+        })
+
+        # áp dụng luật
+        VET.append(chosen_rule)
+        left, right = chosen_rule
+
+        # cập nhật mục tiêu
+        new_goals = (Goals - right) | left
+        Goals = new_goals
+
+        # nếu có sự kiện nào của Goals đã có trong TG thì loại bỏ
+        Goals -= TG
+
+        # cập nhật THOA
+        R_remain.remove(chosen_rule)
+        THOA = [r for r in R_remain if not r[1].isdisjoint(Goals)]
+
+    # lưu bước cuối
+    step_id += 1
+    steps.append({
+        "Bước": step_id,
+        "THOA": [rule_to_str(r) for r in THOA],
+        "TG": ", ".join(sorted(TG)),
+        "R": [rule_to_str(r) for r in R_remain],
+        "VET": ", ".join([rule_to_str(x) for x in VET]),
+        "Candidates": ""
+    })
+
+    ok = Goals.issubset(TG)
+    return ok, TG, VET, steps
+
+
 def suy_dien_tien_RPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
     """
     Forward chaining guided by RPG distances.
@@ -696,14 +796,38 @@ if TG_input and KL_input:
 
     with c2:
         st.markdown("### Suy diễn lùi")
-        order_lui = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_lui", horizontal=True)
+        mode_lui = st.radio(
+            "Chọn chế độ suy diễn tiến",
+            [
+                "Theo Min/Max (Backtracking)",
+                "Theo FPG"
+            ],
+            key="mode_lui",
+            horizontal=False
+        )
+
+        if mode_lui == "Theo Min/Max (Backtracking)":
+            order_lui = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_lui", horizontal=True)
+
         if st.button("Chạy suy diễn lùi"):
-            ok, goals, VEL = suy_dien_lui_bt(set(TG), list(R), set(KL), order=order_lui)
-            st.write("**Thành công:**", ok)
-            st.write("**Mục tiêu còn lại:**", goals)
-            st.write("**Các luật đã dùng:**")
-            for left, right in VEL:
-                st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+            if mode_lui == "Theo Min/Max (Backtracking)":
+                ok, TG_kq, VET = suy_dien_lui_bt(set(TG), list(R), set(KL), order=order_lui)
+                st.write("**Thành công:**", ok)
+                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+                st.write("**Các luật đã dùng:**")
+                for left, right in VET:
+                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+            elif mode_lui == "Theo FPG":
+                ok, TG_kq, VET, steps = suy_dien_lui_FPG(set(TG), list(R), set(KL))
+                st.subheader("Kết quả suy diễn lùi FPG")
+                st.write("Kết luận đạt được" if ok else "Không suy diễn được tới KL")
+                st.write("**Thành công:**", ok)
+                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+                st.write("**Các luật đã dùng:**")
+                for left, right in VET:
+                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+                df_steps = pd.DataFrame(steps)
+                st.dataframe(df_steps)
 
     with c3:
         if st.button("Lưu file luật đã chỉnh sửa"):

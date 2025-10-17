@@ -1,6 +1,3 @@
-TG: A
-KL: E
-R:
 A -> B
 A -> C
 A ^ B ^ C -> D
