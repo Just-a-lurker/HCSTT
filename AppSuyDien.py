@@ -64,9 +64,10 @@ def suy_dien_lui_bt(TG: Set[str], R: List[Rule], KL: Set[str], order="min", dept
         left, right = R[i]
         if right & goals:
             new_goals = (goals - (right & goals)) | left
-            ok, _, used = suy_dien_lui_bt(TG, R, new_goals, order, depth + 1, max_depth)
+            ok, tg_kq, used = suy_dien_lui_bt(TG, R, new_goals, order, depth + 1, max_depth)
             if ok:
-                return True, set(), [(left, right)] + used
+                final_tg = tg_kq | goals
+                return True, final_tg, used + [(left, right)]
     return False, goals, []
 
 
@@ -337,6 +338,7 @@ def suy_dien_lui_FPG(GT: Set[str], R_all: List[Rule], KL: Set[str]):
     })
 
     ok = Goals.issubset(TG)
+    TG = TG | set().union(*[r[1] for r in VET])
     return ok, TG, VET, steps
 
 
