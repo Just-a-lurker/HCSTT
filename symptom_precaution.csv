@@ -1,0 +1,42 @@
+﻿Disease,Precaution_1,Precaution_2,Precaution_3,Precaution_4
+Drug Reaction,Ngừng kích ứng-stop irritation,Tư vấn bệnh viện gần nhất-consult nearest hospital,Ngừng dùng ma túy-stop taking drug,Theo dõi-follow up
+Malaria,Tư vấn bệnh viện gần nhất-Consult nearest hospital,Tránh thức ăn nhiều dầu mỡ-avoid oily food,Tránh thực phẩm không ăn chay-avoid non veg food,Đuổi muỗi ra ngoài-keep mosquitos out
+Allergy,Bôi calamine-apply calamine,che khu vực bằng băng-cover area with bandage,,Dùng đá để nén ngứa-use ice to compress itching
+Hypothyroidism,Giảm căng thẳng-reduce stress,thể dục-exercise,Ăn uống lành mạnh-eat healthy,Ngủ đủ giấc-get proper sleep
+Psoriasis,rửa tay bằng nước xà phòng ấm-wash hands with warm soapy water,Cầm máu bằng áp lực-stop bleeding using pressure,Tham khảo ý kiến bác sĩ-consult doctor,tắm muối-salt baths
+GERD,Tránh thức ăn cay béo-avoid fatty spicy food,Tránh nằm xuống sau khi ăn-avoid lying down after eating,Duy trì cân nặng hợp lý-maintain healthy weight,thể dục-exercise
+Chronic cholestasis,tắm nước lạnh-cold baths,thuốc chống ngứa-anti itch medicine,Tham khảo ý kiến bác sĩ-consult doctor,Ăn uống lành mạnh-eat healthy
+hepatitis A,Tư vấn bệnh viện gần nhất-Consult nearest hospital,rửa tay qua-wash hands through,Tránh thức ăn cay béo-avoid fatty spicy food,Thuốc-medication
+Osteoarthristis,Acetaminophen-acetaminophen,Tư vấn bệnh viện gần nhất-consult nearest hospital,Theo dõi-follow up,tắm muối-salt baths
+(vertigo) Paroymsal  Positional Vertigo,ngả lưng-lie down,tránh thay đổi đột ngột trên cơ thể-avoid sudden change in body,tránh di chuyển đầu đột ngột-avoid abrupt head movment,thư giãn-relax
+Hypoglycemia,Nằm nghiêng-lie down on side,Đăng ký Pulse-check in pulse,Uống đồ uống có đường-drink sugary drinks,Tham khảo ý kiến bác sĩ-consult doctor
+Acne,tắm hai lần-bath twice,Tránh thức ăn cay béo-avoid fatty spicy food,Uống nhiều nước-drink plenty of water,Tránh quá nhiều sản phẩm kích ứng da-avoid too many skin irritate products 
+Diabetes ,có chế độ ăn uống cân bằng-have balanced diet,thể dục-exercise,Tham khảo ý kiến bác sĩ-consult doctor,Theo dõi-follow up
+Impetigo,ngâm khu vực bị ảnh hưởng trong nước ấm-soak affected area in warm water,Sử dụng thuốc kháng sinh-use antibiotics,Loại bỏ vảy bằng vải nén ướt-remove scabs with wet compressed cloth,Tham khảo ý kiến bác sĩ-consult doctor
+Hypertension ,thiền-meditation,tắm muối-salt baths,Giảm căng thẳng-reduce stress,Ngủ đủ giấc-get proper sleep
+Peptic ulcer diseae,Tránh thức ăn cay béo-avoid fatty spicy food,Tiêu thụ thực phẩm probiotic-consume probiotic food,Loại bỏ sữa-eliminate milk,Hạn chế rượu bia-limit alcohol
+Dimorphic hemmorhoids(piles),Tránh thức ăn cay béo-avoid fatty spicy food,Tiêu thụ cây phỉ-consume witch hazel,Tắm nước ấm với muối Epsom-warm bath with epsom salt,Tiêu thụ nước ép Alovera-consume alovera juice
+Common Cold,Uống đồ uống giàu vitamin C-drink vitamin c rich drinks,Lấy hơi-take vapour,Tránh thức ăn lạnh-avoid cold food,Kiểm soát sốt-keep fever in check
+Chicken pox,Sử dụng neem trong tắm-use neem in bathing ,Tiêu thụ lá neem-consume neem leaves,Uống vắc-xin-take vaccine,tránh những nơi công cộng-avoid public places
+Cervical spondylosis,Sử dụng đệm sưởi ấm hoặc túi lạnh-use heating pad or cold pack,thể dục-exercise,Dùng thuốc giảm đau OTC-take otc pain reliver,Tham khảo ý kiến bác sĩ-consult doctor
+Hyperthyroidism,Ăn uống lành mạnh-eat healthy,sự xoa bóp-massage,Sử dụng tía tô đất-use lemon balm,Xử lý iốt phóng xạ-take radioactive iodine treatment
+Urinary tract infection,Uống nhiều nước-drink plenty of water,Tăng lượng vitamin C-increase vitamin c intake,Uống nước ép nam việt quất-drink cranberry juice,Dùng men vi sinh-take probiotics
+Varicose veins,Nằm thẳng và nâng chân lên cao-lie down flat and raise the leg high,sử dụng thuốc mỡ-use oinments,Sử dụng nén tĩnh mạch-use vein compression,Đừng đứng yên lâu-dont stand still for long
+AIDS,tránh vết cắt hở-avoid open cuts,Mặc PPE nếu có thể-wear ppe if possible,Tham khảo ý kiến bác sĩ-consult doctor,Theo dõi-follow up
+Paralysis (brain hemorrhage),sự xoa bóp-massage,Ăn uống lành mạnh-eat healthy,thể dục-exercise,Tham khảo ý kiến bác sĩ-consult doctor
+Typhoid,Ăn rau có hàm lượng calo cao-eat high calorie vegitables,điều trị kháng sinh-antiboitic therapy,Tham khảo ý kiến bác sĩ-consult doctor,Thuốc-medication
+Hepatitis B,Tư vấn bệnh viện gần nhất-consult nearest hospital,Tiêm chủng-vaccination,Ăn uống lành mạnh-eat healthy,Thuốc-medication
+Fungal infection,tắm hai lần-bath twice,Sử dụng Detol hoặc Neem trong nước tắm-use detol or neem in bathing water,Giữ cho khu vực bị nhiễm bệnh khô ráo-keep infected area dry,Sử dụng vải sạch-use clean cloths
+Hepatitis C,Tư vấn bệnh viện gần nhất-Consult nearest hospital,Tiêm chủng-vaccination,Ăn uống lành mạnh-eat healthy,Thuốc-medication
+Migraine,thiền-meditation,Giảm căng thẳng-reduce stress,Sử dụng kính poloroid dưới ánh nắng mặt trời-use poloroid glasses in sun,Tham khảo ý kiến bác sĩ-consult doctor
+Bronchial Asthma,Chuyển sang cloose cloothing-switch to loose cloothing,hít thở sâu-take deep breaths,Thoát khỏi kích hoạt-get away from trigger,Tìm kiếm sự giúp đỡ-seek help
+Alcoholic hepatitis,Ngừng uống rượu-stop alcohol consumption,Tham khảo ý kiến bác sĩ-consult doctor,Thuốc-medication,Theo dõi-follow up
+Jaundice,Uống nhiều nước-drink plenty of water,Tiêu thụ cây kế sữa-consume milk thistle,ăn trái cây và thức ăn giàu chất xơ-eat fruits and high fiberous food,Thuốc-medication
+Hepatitis E,Ngừng uống rượu-stop alcohol consumption,nghỉ ngơi-rest,Tham khảo ý kiến bác sĩ-consult doctor,Thuốc-medication
+Dengue,Uống nước ép lá đu đủ-drink papaya leaf juice,Tránh thức ăn cay béo-avoid fatty spicy food,Tránh xa muỗi-keep mosquitos away,Giữ nước-keep hydrated
+Hepatitis D,Tham khảo ý kiến bác sĩ-consult doctor,Thuốc-medication,Ăn uống lành mạnh-eat healthy,Theo dõi-follow up
+Heart attack,Gọi xe cứu thương-call ambulance,nhai hoặc nuốt asprin-chew or swallow asprin,Giữ bình tĩnh-keep calm,
+Pneumonia,Tham khảo ý kiến bác sĩ-consult doctor,Thuốc-medication,nghỉ ngơi-rest,Theo dõi-follow up
+Arthritis,thể dục-exercise,Sử dụng liệu pháp nóng và lạnh-use hot and cold therapy,thử châm cứu-try acupuncture,sự xoa bóp-massage
+Gastroenteritis,ngừng ăn thức ăn đặc trong thời gian-stop eating solid food for while,Hãy thử uống từng ngụm nước nhỏ-try taking small sips of water,nghỉ ngơi-rest,Dễ dàng ăn trở lại-ease back into eating
+Tuberculosis,Che miệng-cover mouth,Tham khảo ý kiến bác sĩ-consult doctor,Thuốc-medication,nghỉ ngơi-rest
