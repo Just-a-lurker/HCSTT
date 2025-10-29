@@ -179,11 +179,11 @@ diseases = sorted(dataset["Disease"].unique())
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.subheader("Nhập tên bệnh để gợi ý")
-    query = st.text_input("Tìm kiếm bệnh", "")
-    if query:
-        gợi_ý = [d for d in diseases if query.lower() in d.lower()]
-        st.write("**Gợi ý:**", gợi_ý if gợi_ý else "Không tìm thấy")
+    # st.subheader("Nhập tên bệnh để gợi ý")
+    # query = st.text_input("Tìm kiếm bệnh", "")
+    # if query:
+    #     gợi_ý = [d for d in diseases if query.lower() in d.lower()]
+    #     st.write("**Gợi ý:**", gợi_ý if gợi_ý else "Không tìm thấy")
 
     st.subheader("Chọn triệu chứng bạn đang có:")
     symptoms_display = [vi_en(s) for s in sorted(symptom_severity["Symptom"].tolist())]
