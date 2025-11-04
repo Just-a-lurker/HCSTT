@@ -244,102 +244,64 @@ def suy_dien_tien_FPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
 
 def suy_dien_lui_FPG(GT: Set[str], R_all: List[Rule], KL: Set[str]):
     """
-    Backward chaining guided by h via FPG.
-    Trả về ok, TG_kq, VET, steps
-    steps: list of dict với keys:
-      Bước, THOA(list rule names), TG, R(list rule names), VET(list rule names), Candidates(str)
+    Suy diễn lùi theo FPG.
+    Trả về ok, TG_kq, VET, log (list[str])
     """
     TG = set(GT)
-    R_remain = list(R_all)[:]  # giữ bản gốc
+    R_remain = list(R_all)
     G = build_adj(R_all)
     VET = []
+    Goals = set(KL)
     steps = []
 
-    # Mục tiêu hiện tại (goal set)
-    Goals = set(KL)
-    step_id = 0
+    while True:
+        # nếu đã đạt KL
+        if Goals.issubset(TG):
+            break
 
-    # khởi tạo các luật có thể sinh ra KL
-    THOA = [r for r in R_remain if not r[1].isdisjoint(Goals)]
+        # các luật sinh ra mục tiêu hiện tại
+        THOA = [r for r in R_remain if not r[1].isdisjoint(Goals)]
+        if not THOA:
+            break
 
-    # bước 0
-    steps.append({
-        "Bước": step_id,
-        "THOA": [rule_to_str(r) for r in THOA],
-        "TG": ", ".join(sorted(TG)),
-        "R": [rule_to_str(r) for r in R_remain],
-        "VET": ", ".join([]),
-        "Candidates": ""
-    })
-
-    while THOA and not Goals.issubset(TG):
-        step_id += 1
-
-        # nếu chỉ 1 luật thỏa thì chọn luôn
+        # nếu chỉ có 1 luật thỏa, chọn ngay
         if len(THOA) == 1:
             chosen_rule = THOA[0]
-            cand_str = rule_to_str(chosen_rule) + " => Chọn trực tiếp (1 luật)"
+            # name = rule_name(R_remain.index(chosen_rule) + 1, chosen_rule)
+            steps.append(f"r{R_remain.index(chosen_rule) + 1}: {rule_to_str(chosen_rule)} => Chọn trực tiếp (1 luật)")
         else:
-            # tính hàm lượng giá h(r,GT) = max{ d(f,GT) | f ∈ left }
-            cand_info = []
+            # Tính h(r) = max{d(f, GT) | f ∈ left}
             scored = []
             for r in THOA:
-                left, right = r
-                h_vals = []
+                left, _ = r
+                d_vals = []
                 for f in left:
-                    # dùng shortest_distance: khoảng cách từ GT tới f
-                    d = shortest_distance(G, set(GT), f)
-                    h_vals.append(d if d != float("inf") else INF)
-                h_r = max(h_vals) if h_vals else INF
-                idx = R_remain.index(r) if r in R_remain else -1
-                name = rule_name(idx + 1, r) if idx >= 0 else rule_to_str(r)
-                cand_info.append(f"{name}={h_r if h_r < INF else '∞'}")
+                    d = shortest_distance(G, TG, f)
+                    d_vals.append(d if d != float("inf") else INF)
+                h_r = max(d_vals) if d_vals else INF
+                idx = R_remain.index(r)
+                name = rule_name(idx + 1, r)
+                d_display = ", ".join([f"d({f},GT)" for f in left])
+                d_vals_display = ", ".join([str(v if v < INF else "∞") for v in d_vals])
+                steps.append(f"h({name}) = max{{{d_display}}} = {h_r if h_r < INF else '∞'}")
                 scored.append((h_r, idx, r))
 
-            scored.sort(key=lambda x: (x[0], x[1] if x[1] >= 0 else 9999))
+            # chọn luật có h nhỏ nhất
+            scored.sort(key=lambda x: (x[0], x[1]))
             chosen_h, chosen_idx, chosen_rule = scored[0]
-            chosen_name = rule_name(chosen_idx + 1, chosen_rule) if chosen_idx >= 0 else rule_to_str(chosen_rule)
-            cand_str = ", ".join(cand_info)
-            cand_str += f"    => Chọn: {chosen_name} (h={chosen_h if chosen_h < INF else '∞'})"
-
-        # lưu trước khi áp dụng
-        steps.append({
-            "Bước": step_id,
-            "THOA": [rule_to_str(r) for r in THOA],
-            "TG": ", ".join(sorted(TG)),
-            "R": [rule_to_str(r) for r in R_remain],
-            "VET": ", ".join([rule_to_str(x) for x in VET]),
-            "Candidates": cand_str
-        })
+            chosen_name = rule_name(chosen_idx + 1, chosen_rule)
+            steps.append(f"=> Chọn h({chosen_name}) = {chosen_h if chosen_h < INF else '∞'}")
 
         # áp dụng luật
         VET.append(chosen_rule)
         left, right = chosen_rule
-
-        # cập nhật mục tiêu
-        new_goals = (Goals - right) | left
-        Goals = new_goals
-
-        # nếu có sự kiện nào của Goals đã có trong TG thì loại bỏ
+        Goals = (Goals - right) | left
         Goals -= TG
-
-        # cập nhật THOA
         R_remain.remove(chosen_rule)
-        THOA = [r for r in R_remain if not r[1].isdisjoint(Goals)]
 
-    # lưu bước cuối
-    step_id += 1
-    steps.append({
-        "Bước": step_id,
-        "THOA": [rule_to_str(r) for r in THOA],
-        "TG": ", ".join(sorted(TG)),
-        "R": [rule_to_str(r) for r in R_remain],
-        "VET": ", ".join([rule_to_str(x) for x in VET]),
-        "Candidates": ""
-    })
+    TG |= set().union(*[r[1] for r in VET])
+    ok = set(KL).issubset(TG)
 
-    ok = Goals.issubset(TG)
-    TG = TG | set().union(*[r[1] for r in VET])
     return ok, TG, VET, steps
 
 
@@ -477,10 +439,8 @@ def dist_to_set(G: dict, src: str, targets: Set[str]) -> float:
                 q.append((nxt, d + 1))
     return float("inf")
 
-
 def rule_name(idx, rule):
-    left, right = rule
-    return f"r{idx}: {' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}"
+    return f"r{idx}: {rule_to_str(rule)}"
 
 def shortest_distance(G: dict, GT: Set[str], target: str) -> float:
     if target in GT:
@@ -826,11 +786,13 @@ if TG_input and KL_input:
                 st.write("Kết luận đạt được" if ok else "Không suy diễn được tới KL")
                 st.write("**Thành công:**", ok)
                 st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+
                 st.write("**Các luật đã dùng:**")
                 for left, right in VET:
-                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
-                df_steps = pd.DataFrame(steps)
-                st.dataframe(df_steps)
+                    st.code(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}", language="python")
+
+                st.markdown("**Chi tiết từng bước:**")
+                st.code("\n".join(steps), language="python")
 
     with c3:
         if st.button("Lưu file luật đã chỉnh sửa"):
