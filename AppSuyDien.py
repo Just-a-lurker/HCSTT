@@ -71,10 +71,6 @@ def suy_dien_lui_bt(TG: Set[str], R: List[Rule], KL: Set[str], order="min", dept
                 return True, final_tg, used + [(left, right)]
     return False, goals, []
 
-
-def loc(TG: Set[str], R: List[Rule]) -> List[Rule]:
-    return [r for r in R if r[0].issubset(TG) and not r[1].issubset(TG)]
-
 def suy_dien_tien_thoa(TG: Set[str], R: List[Rule], KL: Set[str], use_stack: bool):
     """
     THOA preserved as queue (FIFO) or stack (LIFO).
