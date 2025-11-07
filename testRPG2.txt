@@ -1,6 +1,0 @@
-A ^ B->C
-A ^ C->D
-B ^ C->E
-A ^ E->M
-A ^ B->N
-E ^ N->M

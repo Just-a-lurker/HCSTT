@@ -40,8 +40,8 @@ def forward_chaining(TG: Set[str], R_all: List[Tuple[Set[str], str]], weight_map
     return sorted_diseases, VET
 
 # ================== App Streamlit ==================
-st.set_page_config("Hệ chẩn đoán bệnh bằng Suy diễn", layout="wide")
-st.title("HỆ CHUẨN ĐOÁN BỆNH DỰA TRÊN SUY DIỄN (FPG)")
+st.set_page_config("Hệ chẩn đoán bệnh bằng Suy diễn tiến", layout="wide")
+st.title("HỆ CHUẨN ĐOÁN BỆNH DỰA TRÊN SUY DIỄN TIẾN")
 
 # --- Load dữ liệu ---
 dataset = pd.read_csv("dataset.csv", encoding='utf-8')
