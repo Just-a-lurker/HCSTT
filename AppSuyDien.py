@@ -1,9 +1,7 @@
 #AppSuyDien.py
 import streamlit as st
-from typing import List, Tuple, Set
 from pyvis.network import Network
 import tempfile
-import os
 import pandas as pd
 from collections import deque
 from typing import List, Tuple, Set
@@ -173,12 +171,12 @@ def suy_dien_tien_FPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
                 d = dist_to_set(G, qnode, set(KL))
                 h_vals.append(d if d != float("inf") else INF)
             h_r = min(h_vals) if h_vals else INF
-            idx = R_remain.index(r) if r in R_remain else -1
+            idx = R_all.index(r) if r in R_remain else -1
             name = rule_name(idx+1, r) if idx>=0 else rule_to_str(r)
             cand_info.append(f"{name}={h_r if h_r<INF else '∞'}")
             scored.append((h_r, idx, r))
 
-        # sắp theo h tăng dần, tie-break: theo thứ tự trong R_remain (idx)
+        # sắp theo h tăng dần, tie-break: theo thứ tự trong idx
         scored.sort(key=lambda x: (x[0], x[1] if x[1]>=0 else 9999))
         chosen_h, chosen_idx, chosen_rule = scored[0]
 
@@ -453,11 +451,6 @@ def shortest_distance(G: dict, GT: Set[str], target: str) -> float:
                 q.append((nxt, dist + 1))
     return float("inf")
 
-def h_rule(left: Set[str], G: dict, GT: Set[str]) -> float:
-    if not left:
-        return float("inf")
-    return max(shortest_distance(G, GT, f) for f in left)
-
 def build_RPG(R_all: List[Rule]) -> nx.DiGraph:
     """Xây đồ thị RPG: node = r{i} (index trong R_all), edge ri->rj nếu right(ri) ∩ left(rj) ≠ ∅"""
     G = nx.DiGraph()
@@ -683,7 +676,7 @@ if TG_input and KL_input:
     with c2:
         st.markdown("### Suy diễn lùi")
         mode_lui = st.radio(
-            "Chọn chế độ suy diễn tiến",
+            "Chọn chế độ suy diễn lùi",
             [
                 "Theo Min/Max (Backtracking)",
                 "Theo FPG"
