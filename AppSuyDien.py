@@ -83,16 +83,16 @@ def suy_dien_tien_thoa(TG: Set[str], R: List[Rule], KL: Set[str], use_stack: boo
 
     # khởi tạo THOA theo thứ tự R_remain
     THOA = [r for r in R_remain if r[0].issubset(TG) and not r[1].issubset(TG)]
-
+    rule_to_idx = {(frozenset(r[0]), frozenset(r[1])): f"r{i + 1}" for i, r in enumerate(R)}
     step_id = 0
     while THOA and not KL.issubset(TG):
         step_id += 1
         steps.append({
             "Bước": step_id,
-            "THOA": [rule_to_str(r) for r in THOA],
+            "THOA": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in THOA],
             "TG": sorted(list(TG)),
-            "R": [rule_to_str(r) for r in R_remain],
-            "VET": [rule_to_str(r) for r in VET],
+            "R": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in R_remain],
+            "VET": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in VET],
         })
 
         # lấy luật theo stack/queue (không tính lại toàn bộ THOA)
@@ -123,10 +123,10 @@ def suy_dien_tien_thoa(TG: Set[str], R: List[Rule], KL: Set[str], use_stack: boo
     step_id += 1
     steps.append({
         "Bước": step_id,
-        "THOA": [rule_to_str(r) for r in THOA],
+        "THOA": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in THOA],
         "TG": sorted(list(TG)),
-        "R": [rule_to_str(r) for r in R_remain],
-        "VET": [rule_to_str(r) for r in VET],
+        "R": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in R_remain],
+        "VET": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in VET],
     })
 
     return KL.issubset(TG), TG, VET, TG0, steps
@@ -146,13 +146,16 @@ def suy_dien_tien_FPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
     # khởi tạo THOA (theo thứ tự R_remain)
     THOA = [r for r in R_remain if r[0].issubset(TG) and not r[1].issubset(TG)]
 
+    # Tạo map luật -> số thứ tự
+    rule_to_idx = {(frozenset(r[0]), frozenset(r[1])): f"r{i + 1}" for i, r in enumerate(R_all)}
+
     # bước 0: trạng thái ban đầu
     steps.append({
         "Bước": 0,
-        "THOA": [rule_to_str(r) for r in THOA],
+        "THOA": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in THOA],
         "TG": ", ".join(sorted(TG)),
-        "R": [rule_to_str(r) for r in R_remain],
-        "VET": ", ".join([]),
+        "R": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in R_remain],
+        "VET": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in VET],
         "Candidates": ""
     })
 
@@ -185,13 +188,14 @@ def suy_dien_tien_FPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
         chosen_name = rule_name(chosen_idx+1, chosen_rule) if chosen_idx>=0 else rule_to_str(chosen_rule)
         cand_str = cand_str + f"    => Chọn: {chosen_name} (h={chosen_h if chosen_h<INF else '∞'})"
 
-        # lưu trạng thái trước khi áp dụng
+
+        # Khi lưu THOA và R, chuyển luật thành tuple frozenset
         steps.append({
             "Bước": step_id,
-            "THOA": [rule_to_str(r) for r in THOA],
+            "THOA": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in THOA],
             "TG": ", ".join(sorted(TG)),
-            "R": [rule_to_str(r) for r in R_remain],
-            "VET": ", ".join([rule_to_str(x) for x in VET]),
+            "R": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in R_remain],
+            "VET": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in VET],
             "Candidates": cand_str
         })
 
@@ -227,10 +231,10 @@ def suy_dien_tien_FPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
     step_id += 1
     steps.append({
         "Bước": step_id,
-        "THOA": [rule_to_str(r) for r in THOA],
+        "THOA": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in THOA],
         "TG": ", ".join(sorted(TG)),
-        "R": [rule_to_str(r) for r in R_remain],
-        "VET": ", ".join([rule_to_str(x) for x in VET]),
+        "R": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in R_remain],
+        "VET": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in VET],
         "Candidates": ""
     })
 
@@ -295,7 +299,7 @@ def suy_dien_lui_FPG(GT: Set[str], R_all: List[Rule], KL: Set[str]):
 
     TG |= set().union(*[r[1] for r in VET])
     ok = set(KL).issubset(TG)
-
+    VET = list(reversed(VET))
     return ok, TG, VET, steps
 
 
@@ -318,14 +322,14 @@ def suy_dien_tien_RPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
 
     # RKL: chỉ dựa trên KL (các luật dẫn trực tiếp tới KL)
     RGT, RKL = rgt_rkl_sets(R_all, TG, KL)
-
+    rule_to_idx = {(frozenset(r[0]), frozenset(r[1])): f"r{i + 1}" for i, r in enumerate(R_all)}
     # bước 0
     steps.append({
         "Bước": 0,
-        "THOA": [rule_to_str(r) for r in THOA],
+        "THOA": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in THOA],
         "TG": ", ".join(sorted(TG)),
-        "R": [rule_to_str(r) for r in R_remain],
-        "VET": "",
+        "R": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in R_remain],
+        "VET": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in VET],
         "Candidates": ""
     })
 
@@ -361,10 +365,10 @@ def suy_dien_tien_RPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
         # lưu trạng thái trước khi áp dụng
         steps.append({
             "Bước": step_id,
-            "THOA": [rule_to_str(r) for r in THOA],
+            "THOA": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in THOA],
             "TG": ", ".join(sorted(TG)),
-            "R": [rule_to_str(r) for r in R_remain],
-            "VET": ", ".join([rule_to_str(x) for x in VET]),
+            "R": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in R_remain],
+            "VET": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in VET],
             "Candidates": cand_str
         })
 
@@ -398,10 +402,10 @@ def suy_dien_tien_RPG(TG: Set[str], R_all: List[Rule], KL: Set[str]):
     step_id += 1
     steps.append({
         "Bước": step_id,
-        "THOA": [rule_to_str(r) for r in THOA],
+        "THOA": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in THOA],
         "TG": ", ".join(sorted(TG)),
-        "R": [rule_to_str(r) for r in R_remain],
-        "VET": ", ".join([rule_to_str(x) for x in VET]),
+        "R": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in R_remain],
+        "VET": [rule_to_idx[(frozenset(r[0]), frozenset(r[1]))] for r in VET],
         "Candidates": ""
     })
 
@@ -547,14 +551,19 @@ if uploaded:
         [{"Vế trái": " ^ ".join(sorted(l)), "Vế phải": " ^ ".join(sorted(r))} for l, r in R]
     )
 
-# --- Hiển thị bảng luật ---
+# Thêm cột đánh số luật
+rules_df_display = st.session_state["rules_df"].copy()
+rules_df_display.insert(0, "Luật", range(1, len(rules_df_display) + 1))
+
+# Hiển thị bảng có cột STT
 st.subheader("Bảng luật (có thể chỉnh sửa)")
 rules_df = st.data_editor(
-    st.session_state["rules_df"],
+    rules_df_display,
     num_rows="dynamic",
     use_container_width=True,
     key="editable_rules"
 )
+
 
 # --- Nút cập nhật bảng luật ---
 if st.button("Cập nhật bảng luật"):
@@ -562,17 +571,28 @@ if st.button("Cập nhật bảng luật"):
     st.success("Đã cập nhật bảng luật vào bộ nhớ.")
 
 
-# Tạo danh sách R mới
 R = []
+seen_rules = set()
+
 for _, row in rules_df.iterrows():
     left_str = str(row.get("Vế trái") or "").strip()
     right_str = str(row.get("Vế phải") or "").strip()
     if not left_str or not right_str:
         continue
+
     left = set(left_str.replace("^", " ").split())
     right = set(right_str.replace("^", " ").split())
-    if left and right:
-        R.append((left, right))
+    if not left or not right:
+        continue
+
+    rule_key = (frozenset(left), frozenset(right))
+    if rule_key in seen_rules:
+        st.warning(f"Luật trùng lặp bị bỏ qua: {' ^ '.join(left)} -> {' ^ '.join(right)}")
+        continue
+
+    seen_rules.add(rule_key)
+    R.append((left, right))
+
 
 
 TG_input = st.text_input("Nhập giả thuyết ban đầu (GT):", "")
@@ -582,148 +602,148 @@ if TG_input and KL_input:
     TG = set(TG_input.split())
     KL = set(KL_input.split())
 
-    c1, c2, c3 = st.columns(3)
+#    c1, c2, c3 = st.columns(3)
 
-    with c1:
-        st.markdown("### Suy diễn tiến")
+ #   with c1:
+    st.markdown("### Suy diễn tiến")
 
-        mode_tien = st.radio(
-            "Chọn chế độ suy diễn tiến",
-            [
-                "Theo Min/Max (Backtracking)",
-                "Theo THOA (Stack/Queue)",
-                "Theo FPG",
-                "Theo RPG"
-            ],
-            key="mode_tien",
-            horizontal=False
-        )
+    mode_tien = st.radio(
+        "Chọn chế độ suy diễn tiến",
+        [
+            "Theo Min/Max (Backtracking)",
+            "Theo THOA (Stack/Queue)",
+            "Theo FPG",
+            "Theo RPG"
+        ],
+        key="mode_tien",
+        horizontal=False
+    )
 
+    if mode_tien == "Theo Min/Max (Backtracking)":
+        order_tien = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_tien", horizontal=True)
+
+    elif mode_tien == "Theo THOA (Stack/Queue)":
+        thoa_mode = st.radio("Kiểu THOA", ["Stack (LIFO)", "Queue (FIFO)"], key="thoa_mode", horizontal=True)
+
+    # Chế độ FPG không có lựa chọn phụ
+    if st.button("Chạy suy diễn tiến"):
         if mode_tien == "Theo Min/Max (Backtracking)":
-            order_tien = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_tien", horizontal=True)
+            ok, TG_kq, VET = suy_dien_tien_bt(set(TG), list(R), set(KL), order=order_tien)
+            st.write("**Thành công:**", ok)
+            st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+            st.write("**Các luật đã dùng:**")
+            for left, right in VET:
+                st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
 
         elif mode_tien == "Theo THOA (Stack/Queue)":
-            thoa_mode = st.radio("Kiểu THOA", ["Stack (LIFO)", "Queue (FIFO)"], key="thoa_mode", horizontal=True)
+            use_stack = (thoa_mode == "Stack (LIFO)")
+            ok, TG_kq, VET, TG0, steps = suy_dien_tien_thoa(set(TG), list(R), set(KL), use_stack=use_stack)
 
-        # Chế độ FPG không có lựa chọn phụ
-        if st.button("Chạy suy diễn tiến"):
-            if mode_tien == "Theo Min/Max (Backtracking)":
-                ok, TG_kq, VET = suy_dien_tien_bt(set(TG), list(R), set(KL), order=order_tien)
-                st.write("**Thành công:**", ok)
-                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
-                st.write("**Các luật đã dùng:**")
-                for left, right in VET:
-                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+            st.write("**Thành công:**", ok)
+            st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+            st.write("**Các luật đã dùng:**")
+            for left, right in VET:
+                st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
 
-            elif mode_tien == "Theo THOA (Stack/Queue)":
-                use_stack = (thoa_mode == "Stack (LIFO)")
-                ok, TG_kq, VET, TG0, steps = suy_dien_tien_thoa(set(TG), list(R), set(KL), use_stack=use_stack)
+            # --- Bảng quá trình ---
+            st.markdown("### Bảng quá trình suy diễn")
+            # df_steps = pd.DataFrame([
+            #     {
+            #         "Bước": s["Bước"],
+            #         "THOA": ", ".join(s["THOA"]),
+            #         "TG": ", ".join(s["TG"]),
+            #         "R": ", ".join(s["R"]),
+            #         "VET": ", ".join(s["VET"])
+            #     }
+            #     for s in steps
+            # ])
+            # st.dataframe(df_steps, use_container_width=True, height=400)
+            df_steps = pd.DataFrame(steps)
+            st.dataframe(df_steps, hide_index=True)
 
-                st.write("**Thành công:**", ok)
-                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
-                st.write("**Các luật đã dùng:**")
-                for left, right in VET:
-                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
-
-                # --- Bảng quá trình ---
-                st.markdown("### Bảng quá trình suy diễn")
-                # df_steps = pd.DataFrame([
-                #     {
-                #         "Bước": s["Bước"],
-                #         "THOA": ", ".join(s["THOA"]),
-                #         "TG": ", ".join(s["TG"]),
-                #         "R": ", ".join(s["R"]),
-                #         "VET": ", ".join(s["VET"])
-                #     }
-                #     for s in steps
-                # ])
-                # st.dataframe(df_steps, use_container_width=True, height=400)
-                df_steps = pd.DataFrame(steps)
-                st.dataframe(df_steps)
-
-            elif mode_tien == "Theo FPG":
-                ok, TG_kq, VET, steps = suy_dien_tien_FPG(set(TG), list(R), set(KL))
-                st.write("**Thành công:**", ok)
-                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
-                st.write("**Các luật đã dùng:**")
-                for left, right in VET:
-                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
-                # df_steps = pd.DataFrame([{
-                #     "Bước": s["Bước"],
-                #     "THOA": ", ".join(s["THOA"]),
-                #     "TG": s["TG"],
-                #     "R": ", ".join(s["R"]),
-                #     "VET": s["VET"],
-                #     "So sánh h": s["Candidates"]
-                # } for s in steps])
-                # st.dataframe(df_steps, use_container_width=True, height=500)
-                df_steps = pd.DataFrame(steps)
-                st.dataframe(df_steps)
+        elif mode_tien == "Theo FPG":
+            ok, TG_kq, VET, steps = suy_dien_tien_FPG(set(TG), list(R), set(KL))
+            st.write("**Thành công:**", ok)
+            st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+            st.write("**Các luật đã dùng:**")
+            for left, right in VET:
+                st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+            # df_steps = pd.DataFrame([{
+            #     "Bước": s["Bước"],
+            #     "THOA": ", ".join(s["THOA"]),
+            #     "TG": s["TG"],
+            #     "R": ", ".join(s["R"]),
+            #     "VET": s["VET"],
+            #     "So sánh h": s["Candidates"]
+            # } for s in steps])
+            # st.dataframe(df_steps, use_container_width=True, height=500)
+            df_steps = pd.DataFrame(steps)
+            st.dataframe(df_steps, hide_index=True)
 
 
-            elif mode_tien == "Theo RPG":
-                ok, TG_kq, VET, steps = suy_dien_tien_RPG(set(TG), list(R), set(KL))
-                st.subheader("Kết quả suy diễn tiến RPG")
-                st.write("Kết luận đạt được" if ok else "Không suy diễn được tới KL")
-                st.write("**Thành công:**", ok)
-                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
-                st.write("**Các luật đã dùng:**")
-                for left, right in VET:
-                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
-                df_steps = pd.DataFrame(steps)
-                st.dataframe(df_steps)
+        elif mode_tien == "Theo RPG":
+            ok, TG_kq, VET, steps = suy_dien_tien_RPG(set(TG), list(R), set(KL))
+            st.subheader("Kết quả suy diễn tiến RPG")
+            st.write("Kết luận đạt được" if ok else "Không suy diễn được tới KL")
+            st.write("**Thành công:**", ok)
+            st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+            st.write("**Các luật đã dùng:**")
+            for left, right in VET:
+                st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+            df_steps = pd.DataFrame(steps)
+            st.dataframe(df_steps,hide_index=True)
 
-    with c2:
-        st.markdown("### Suy diễn lùi")
-        mode_lui = st.radio(
-            "Chọn chế độ suy diễn lùi",
-            [
-                "Theo Min/Max (Backtracking)",
-                "Theo FPG"
-            ],
-            key="mode_lui",
-            horizontal=False
-        )
+#    with c2:
+    st.markdown("### Suy diễn lùi")
+    mode_lui = st.radio(
+        "Chọn chế độ suy diễn lùi",
+        [
+            "Theo Min/Max (Backtracking)",
+            "Theo FPG"
+        ],
+        key="mode_lui",
+        horizontal=False
+    )
 
+    if mode_lui == "Theo Min/Max (Backtracking)":
+        order_lui = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_lui", horizontal=True)
+
+    if st.button("Chạy suy diễn lùi"):
         if mode_lui == "Theo Min/Max (Backtracking)":
-            order_lui = st.radio("Thứ tự duyệt luật", ["min", "max"], key="order_lui", horizontal=True)
+            ok, TG_kq, VET = suy_dien_lui_bt(set(TG), list(R), set(KL), order=order_lui)
+            st.write("**Thành công:**", ok)
+            st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+            st.write("**Các luật đã dùng:**")
+            for left, right in VET:
+                st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
+        elif mode_lui == "Theo FPG":
+            ok, TG_kq, VET, steps = suy_dien_lui_FPG(set(TG), list(R), set(KL))
+            st.subheader("Kết quả suy diễn lùi FPG")
+            st.write("Kết luận đạt được" if ok else "Không suy diễn được tới KL")
+            st.write("**Thành công:**", ok)
+            st.write("**Tập sự kiện cuối cùng:**", TG_kq)
 
-        if st.button("Chạy suy diễn lùi"):
-            if mode_lui == "Theo Min/Max (Backtracking)":
-                ok, TG_kq, VET = suy_dien_lui_bt(set(TG), list(R), set(KL), order=order_lui)
-                st.write("**Thành công:**", ok)
-                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
-                st.write("**Các luật đã dùng:**")
-                for left, right in VET:
-                    st.write(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}")
-            elif mode_lui == "Theo FPG":
-                ok, TG_kq, VET, steps = suy_dien_lui_FPG(set(TG), list(R), set(KL))
-                st.subheader("Kết quả suy diễn lùi FPG")
-                st.write("Kết luận đạt được" if ok else "Không suy diễn được tới KL")
-                st.write("**Thành công:**", ok)
-                st.write("**Tập sự kiện cuối cùng:**", TG_kq)
+            st.write("**Các luật đã dùng:**")
+            for left, right in VET:
+                st.code(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}", language="python")
 
-                st.write("**Các luật đã dùng:**")
-                for left, right in VET:
-                    st.code(f"{' ^ '.join(sorted(left))} -> {' ^ '.join(sorted(right))}", language="python")
+            st.markdown("**Chi tiết từng bước:**")
+            st.code("\n".join(steps), language="python")
 
-                st.markdown("**Chi tiết từng bước:**")
-                st.code("\n".join(steps), language="python")
+#    with c3:
+    if st.button("Lưu file luật đã chỉnh sửa"):
+        edited_path = "luat_chinh_sua.txt"
+        with open(edited_path, "w", encoding="utf-8") as f:
+            for left, right in R:
+                f.write(f"{' ^ '.join(sorted(left))}->{ ' ^ '.join(sorted(right))}\n")
+        st.success(f"Đã lưu file: {edited_path}")
 
-    with c3:
-        if st.button("Lưu file luật đã chỉnh sửa"):
-            edited_path = "luat_chinh_sua.txt"
-            with open(edited_path, "w", encoding="utf-8") as f:
-                for left, right in R:
-                    f.write(f"{' ^ '.join(sorted(left))}->{ ' ^ '.join(sorted(right))}\n")
-            st.success(f"Đã lưu file: {edited_path}")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Vẽ sơ đồ FPG"):
-            fpg_html = ve_FPG_interactive_edges(TG, KL, R)
-            st.components.v1.html(open(fpg_html, encoding="utf-8").read(), height=750, scrolling=True)
-    with col2:
-        if st.button("Vẽ sơ đồ RPG"):
-            rpg_html = ve_RPG(R)
-            st.components.v1.html(open(rpg_html, encoding="utf-8").read(), height=750, scrolling=True)
+#    col1, col2 = st.columns(2)
+#    with col1:
+    if st.button("Vẽ sơ đồ FPG"):
+        fpg_html = ve_FPG_interactive_edges(TG, KL, R)
+        st.components.v1.html(open(fpg_html, encoding="utf-8").read(), height=750, scrolling=True)
+#    with col2:
+    if st.button("Vẽ sơ đồ RPG"):
+        rpg_html = ve_RPG(R)
+        st.components.v1.html(open(rpg_html, encoding="utf-8").read(), height=750, scrolling=True)
