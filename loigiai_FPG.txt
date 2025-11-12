@@ -1,5 +1,0 @@
-Từ c đến r: ['c', 'S', 'r'], qua luật ['r14', 'r16']
-Từ a đến r: ['a', 'S', 'r'], qua luật ['r14', 'r16']
-Từ b đến r: ['b', 'S', 'r'], qua luật ['r14', 'r16']
-
-Đường ngắn nhất (VET): ['r14', 'r16']

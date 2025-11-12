@@ -84,6 +84,12 @@ with col1:
     symptoms_display = [vi_en(s) for s in sorted(symptom_severity["Symptom"].tolist())]
     selected_display = st.multiselect("Triệu chứng:", symptoms_display)
     selected_symptoms = [s.split(" - ")[-1] if " - " in s else s for s in selected_display]
+    # if selected_display:
+    #     st.markdown("**Triệu chứng đã chọn:**")
+    #     for s in selected_display:
+    #         st.markdown(f"- {s}")
+    # else:
+    #     st.markdown("_Chưa chọn triệu chứng nào._")
 
 with col2:
     if st.button("Chuẩn đoán"):

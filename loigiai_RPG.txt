@@ -1,5 +1,0 @@
-Từ r9 đến r16: không có đường
-Từ r10 đến r16: ['r10', 'r16']
-Từ r11 đến r16: không có đường
-
-Đường ngắn nhất (VET): ['r10', 'r16']
